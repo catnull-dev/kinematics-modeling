@@ -9,11 +9,12 @@ namespace KinematicsModeling
         Output SolveInverseKinematics(Target target, Flags flags, Configuration configuration);
     }
 
-    public interface IForwardKinematicsSolver<Target, Output>
+    public interface IForwardKinematicsSolver<Target, Output, Configuration>
         where Output : struct
         where Target : struct
+        where Configuration : struct
     {
-        Output SolveForwardKinematics(Target target);
+        Output SolveForwardKinematics(Target target, Configuration configuration);
     }
 
     public struct Pose3 {

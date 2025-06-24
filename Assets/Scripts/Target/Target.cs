@@ -11,6 +11,9 @@ namespace KinematicsModeling.Target
         [SerializeField]
         private Transform target;
 
+        [SerializeField]
+        private Transform follower;
+
         private void Update()
         {
             if (target != null)
@@ -20,7 +23,9 @@ namespace KinematicsModeling.Target
                 pose.Y = target.position.y;
                 pose.Z = target.position.z;
 
-                controller.SetInverse(pose);
+                var gens = controller.SetInverse(pose);
+                var forwardSolution = controller.GetForward(gens);
+                follower.position = new Vector3(forwardSolution.X, forwardSolution.Y, forwardSolution.Z);
             }
         }
     }

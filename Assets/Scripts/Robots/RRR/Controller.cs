@@ -34,7 +34,7 @@ namespace KinematicsModeling.Robots.RRR
 
         private IInverseKinematicsSolver<Pose3, Gen3, Flag, RobotConfiguration3> inverseSolver;
 
-        private IForwardKinematicsSolver<Gen3, Pose3> forwardSolver;
+        private IForwardKinematicsSolver<Gen3, Pose3, RobotConfiguration3> forwardSolver;
 
         private RobotConfiguration3 robotConfiguration;
 
@@ -49,6 +49,7 @@ namespace KinematicsModeling.Robots.RRR
             flag.Value = 1;
 
             inverseSolver = new InverseSolver();
+            forwardSolver = new ForwardSolver();
         }
 
         public Pose3 SetForward(Gen3 gens)
@@ -58,11 +59,22 @@ namespace KinematicsModeling.Robots.RRR
                 throw new NullReferenceException("Add " + nameof(forwardSolver) +  " to controller.");
             }
 
-            var result = forwardSolver.SolveForwardKinematics(gens);
+            var result = forwardSolver.SolveForwardKinematics(gens, robotConfiguration);
             joint1 = gens.Joint1;
             joint2 = gens.Joint2;
             joint3 = gens.Joint3;
 
+            return result;
+        }
+
+        public Pose3 GetForward(Gen3 gens)
+        {
+            if (forwardSolver == null)
+            {
+                throw new NullReferenceException("Add " + nameof(forwardSolver) + " to controller.");
+            }
+
+            var result = forwardSolver.SolveForwardKinematics(gens, robotConfiguration);
             return result;
         }
 
@@ -136,6 +148,38 @@ namespace KinematicsModeling.Robots.RRR
             result.Joint3 = Mathf.Rad2Deg * q3;
 
             return result;
+        }
+    }
+
+    internal class ForwardSolver : IForwardKinematicsSolver<Gen3, Pose3, RobotConfiguration3>
+    {
+        public Pose3 SolveForwardKinematics(Gen3 target, RobotConfiguration3 configuration)
+        {
+            var t1 = Matrix4x4.identity;
+            var t2 = t1 * Matrix4x4.TRS(
+                new Vector3(0, configuration.LengthLink1, 0), 
+                Quaternion.AngleAxis(target.Joint1, new Vector3(0, 1, 0)), Vector3.one);
+
+            var t3 = t2 * Matrix4x4.TRS(
+                new Vector3(0, 0, 0),
+                Quaternion.AngleAxis(target.Joint2, new Vector3(0, 0, 1)), Vector3.one);
+
+            var t4 = t3 * Matrix4x4.TRS(
+                new Vector3(configuration.LengthLink2, 0, 0),
+                Quaternion.AngleAxis(target.Joint3, new Vector3(0, 0, 1)), Vector3.one);
+
+            var t5 = t4 * Matrix4x4.TRS(
+                new Vector3(configuration.LengthLink3, 0, 0),
+                Quaternion.identity,
+                Vector3.one
+            );
+
+            var pose3 = new Pose3();
+            pose3.X = t5.GetPosition().x;
+            pose3.Y = t5.GetPosition().y;
+            pose3.Z = t5.GetPosition().z;
+             
+            return pose3;
         }
     }
 }
